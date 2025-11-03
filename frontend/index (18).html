@@ -462,7 +462,7 @@
                 this.displayLocalIP();
                 
                 // Connect to signaling server (auto-detect)
-                const serverUrl = this.getServerUrl();
+                const serverUrl = 'https://localsnap.vercel.app/'
                 this.socket = io(serverUrl);
                 
                 this.socket.on('room-created', (data) => {
@@ -641,15 +641,7 @@
                 }
             },
 
-            getServerUrl() {
-                // Always use the same host and port as the current page
-                const hostname = window.location.hostname;
-                const port =  '3000';
-                const protocol = window.location.protocol;
-                
-                // Build server URL from current page URL
-                return `${protocol}//${hostname}:${port}`;
-            },
+          
 
             createRoom() {
                 this.isHost = true;
