@@ -456,6 +456,10 @@
             sendingFiles: [],
             transferStartTime: null,
             totalBytesSent: 0,
+            // ✅ NEW: Track multiple file transfers
+            receivingFiles: new Map(),
+            sendQueue: [],
+            isSending: false,
 
             init() {
                 // Display local IP address
@@ -641,8 +645,6 @@
                 }
             },
 
-          
-
             createRoom() {
                 this.isHost = true;
                 this.socket.emit('create-room');
@@ -722,9 +724,8 @@
                     document.getElementById('transferInfo').classList.remove('hidden');
                     
                     // Send queued files if any
-                    if (this.sendingFiles && this.sendingFiles.length > 0) {
-                        this.sendingFiles.forEach(file => this.sendFile(file));
-                        this.sendingFiles = [];
+                    if (this.sendQueue && this.sendQueue.length > 0) {
+                        this.processSendQueue();
                     }
                 };
 
@@ -767,7 +768,6 @@
             },
 
             handleFiles(files) {
-                // Allow file selection even before connection, queue them
                 const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
                 
                 if (imageFiles.length === 0) {
@@ -775,111 +775,175 @@
                     return;
                 }
 
-                // If not connected, queue files and show message
+                // Add files to queue
+                this.sendQueue.push(...imageFiles);
+
+                // If not connected, show message
                 if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
-                    this.sendingFiles = imageFiles;
-                    alert('Files ready! They will send automatically once connected. Make sure the other device joins the room.');
-                    // Try to send when connection opens
-                    const checkConnection = setInterval(() => {
-                        if (this.dataChannel && this.dataChannel.readyState === 'open') {
-                            clearInterval(checkConnection);
-                            this.sendingFiles.forEach(file => this.sendFile(file));
-                            this.sendingFiles = [];
-                        }
-                    }, 500);
+                    alert(`${imageFiles.length} file(s) queued. They will send automatically once connected.`);
                     return;
                 }
 
-                imageFiles.forEach(file => this.sendFile(file));
+                // Process queue if connected and not already sending
+                if (!this.isSending) {
+                    this.processSendQueue();
+                }
             },
 
+            // ✅ FIX: Process send queue one file at a time
+            async processSendQueue() {
+                if (this.isSending || this.sendQueue.length === 0) return;
+                
+                this.isSending = true;
+                
+                while (this.sendQueue.length > 0) {
+                    const file = this.sendQueue.shift();
+                    await this.sendFile(file);
+                    // Small delay between files
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                this.isSending = false;
+            },
+
+            // ✅ FIX: Improved sendFile with buffer management and unique IDs
             async sendFile(file) {
                 const CHUNK_SIZE = 16384; // 16KB chunks
+                const MAX_BUFFER = 1048576; // 1MB buffer limit
                 const fileReader = new FileReader();
+                
+                // Generate unique file ID
+                const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 
                 // Show preview
                 const container = document.getElementById('sendingImages');
                 container.classList.remove('hidden');
                 const imgDiv = document.createElement('div');
                 imgDiv.className = 'image-item';
+                imgDiv.id = 'send-' + fileId;
                 imgDiv.innerHTML = `
                     <img src="${URL.createObjectURL(file)}" alt="${file.name}">
                     <div class="progress"><div class="progress-bar" style="width: 0%"></div></div>
                 `;
                 container.appendChild(imgDiv);
 
-                fileReader.onload = async (e) => {
-                    const arrayBuffer = e.target.result;
-                    const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
+                return new Promise((resolve, reject) => {
+                    fileReader.onload = async (e) => {
+                        try {
+                            const arrayBuffer = e.target.result;
+                            const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
 
-                    // Send metadata
-                    this.dataChannel.send(JSON.stringify({
-                        type: 'metadata',
-                        name: file.name,
-                        size: arrayBuffer.byteLength,
-                        mimeType: file.type,
-                        totalChunks: totalChunks
-                    }));
+                            // Send metadata with unique file ID
+                            this.dataChannel.send(JSON.stringify({
+                                type: 'metadata',
+                                fileId: fileId,
+                                name: file.name,
+                                size: arrayBuffer.byteLength,
+                                mimeType: file.type,
+                                totalChunks: totalChunks
+                            }));
 
-                    // Send chunks
-                    for (let i = 0; i < totalChunks; i++) {
-                        const start = i * CHUNK_SIZE;
-                        const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
-                        const chunk = arrayBuffer.slice(start, end);
-                        
-                        this.dataChannel.send(chunk);
-                        this.totalBytesSent += chunk.byteLength;
+                            // Send chunks with buffer management
+                            for (let i = 0; i < totalChunks; i++) {
+                                // ✅ FIX: Wait if buffer is full
+                                while (this.dataChannel.bufferedAmount > MAX_BUFFER) {
+                                    await new Promise(resolve => setTimeout(resolve, 100));
+                                }
 
-                        // Update progress
-                        const progress = ((i + 1) / totalChunks) * 100;
-                        imgDiv.querySelector('.progress-bar').style.width = progress + '%';
+                                const start = i * CHUNK_SIZE;
+                                const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
+                                const chunk = arrayBuffer.slice(start, end);
+                                
+                                // Send chunk header
+                                this.dataChannel.send(JSON.stringify({
+                                    type: 'chunk',
+                                    fileId: fileId,
+                                    chunkIndex: i
+                                }));
+                                
+                                // Send chunk data
+                                this.dataChannel.send(chunk);
+                                this.totalBytesSent += chunk.byteLength;
 
-                        // Update speed
-                        this.updateTransferSpeed();
+                                // Update progress
+                                const progress = ((i + 1) / totalChunks) * 100;
+                                const progressBar = imgDiv.querySelector('.progress-bar');
+                                if (progressBar) {
+                                    progressBar.style.width = progress + '%';
+                                }
 
-                        // Small delay to prevent overwhelming the channel
-                        if (i % 10 === 0) {
-                            await new Promise(resolve => setTimeout(resolve, 1));
+                                // Update speed
+                                this.updateTransferSpeed();
+                            }
+
+                            // Send completion signal
+                            this.dataChannel.send(JSON.stringify({ 
+                                type: 'complete',
+                                fileId: fileId
+                            }));
+
+                            // Update sent count
+                            const sentCount = document.getElementById('sentCount');
+                            sentCount.textContent = parseInt(sentCount.textContent) + 1;
+
+                            resolve();
+                        } catch (error) {
+                            console.error('Error sending file:', error);
+                            reject(error);
                         }
+                    };
+
+                    fileReader.onerror = reject;
+                    fileReader.readAsArrayBuffer(file);
+                    
+                    if (!this.transferStartTime) {
+                        this.transferStartTime = Date.now();
                     }
-
-                    // Send completion signal
-                    this.dataChannel.send(JSON.stringify({ type: 'complete' }));
-
-                    // Update sent count
-                    const sentCount = document.getElementById('sentCount');
-                    sentCount.textContent = parseInt(sentCount.textContent) + 1;
-                };
-
-                fileReader.readAsArrayBuffer(file);
-                
-                if (!this.transferStartTime) {
-                    this.transferStartTime = Date.now();
-                }
+                });
             },
 
             currentFile: null,
             receivedChunks: [],
 
+            // ✅ FIX: Handle multiple file reception
             handleIncomingData(data) {
                 if (typeof data === 'string') {
                     const message = JSON.parse(data);
                     
                     if (message.type === 'metadata') {
-                        this.currentFile = message;
-                        this.receivedChunks = [];
+                        // Start receiving new file
+                        this.receivingFiles.set(message.fileId, {
+                            metadata: message,
+                            chunks: [],
+                            receivedBytes: 0
+                        });
+                        
+                    } else if (message.type === 'chunk') {
+                        // Store chunk info for next binary message
+                        this.currentChunkInfo = message;
+                        
                     } else if (message.type === 'complete') {
-                        this.reconstructFile();
+                        // File transfer complete
+                        this.reconstructFile(message.fileId);
                     }
                 } else {
-                    this.receivedChunks.push(data);
+                    // Binary chunk data
+                    if (this.currentChunkInfo) {
+                        const fileData = this.receivingFiles.get(this.currentChunkInfo.fileId);
+                        if (fileData) {
+                            fileData.chunks.push(data);
+                            fileData.receivedBytes += data.byteLength;
+                        }
+                        this.currentChunkInfo = null;
+                    }
                 }
             },
 
-            reconstructFile() {
-                if (!this.currentFile) return;
+            reconstructFile(fileId) {
+                const fileData = this.receivingFiles.get(fileId);
+                if (!fileData) return;
 
-                const blob = new Blob(this.receivedChunks, { type: this.currentFile.mimeType });
+                const blob = new Blob(fileData.chunks, { type: fileData.metadata.mimeType });
                 const url = URL.createObjectURL(blob);
 
                 // Display received image
@@ -889,18 +953,17 @@
 
                 const imgDiv = document.createElement('div');
                 imgDiv.className = 'image-item';
-                imgDiv.innerHTML = `<img src="${url}" alt="${this.currentFile.name}">`;
+                imgDiv.innerHTML = `<img src="${url}" alt="${fileData.metadata.name}">`;
                 container.appendChild(imgDiv);
 
-                this.receivedFiles.push({ name: this.currentFile.name, url: url, blob: blob });
+                this.receivedFiles.push({ name: fileData.metadata.name, url: url, blob: blob });
 
                 // Update received count
                 const receivedCount = document.getElementById('receivedCount');
                 receivedCount.textContent = parseInt(receivedCount.textContent) + 1;
 
-                // Reset for next file
-                this.currentFile = null;
-                this.receivedChunks = [];
+                // Cleanup
+                this.receivingFiles.delete(fileId);
             },
 
             updateTransferSpeed() {
@@ -944,5 +1007,6 @@
             app.init();
         });
     </script>
+
 </body>
 </html>
