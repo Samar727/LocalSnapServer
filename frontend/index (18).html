@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalSnap Transfer - Direct WiFi Image Transfer</title>
+    <style>
+        :root {
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-cream-100: rgba(255, 255, 253, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-slate-500: rgba(98, 108, 113, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-teal-600: rgba(29, 116, 128, 1);
+            --color-teal-700: rgba(26, 104, 115, 1);
+            --color-brown-600-rgb: 94, 82, 64;
+            --color-teal-500-rgb: 33, 128, 141;
+            --color-background: var(--color-cream-50);
+            --color-surface: var(--color-cream-100);
+            --color-text: var(--color-slate-900);
+            --color-text-secondary: var(--color-slate-500);
+            --color-primary: var(--color-teal-500);
+            --color-primary-hover: var(--color-teal-600);
+            --color-primary-active: var(--color-teal-700);
+            --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+            --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+            --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --radius-base: 8px;
+            --radius-lg: 12px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-charcoal-700: rgba(31, 33, 33, 1);
+                --color-charcoal-800: rgba(38, 40, 40, 1);
+                --color-gray-300: rgba(167, 169, 169, 1);
+                --color-teal-300: rgba(50, 184, 198, 1);
+                --color-teal-400: rgba(45, 166, 178, 1);
+                --color-gray-400-rgb: 119, 124, 124;
+                --color-teal-300-rgb: 50, 184, 198;
+                --color-background: var(--color-charcoal-700);
+                --color-surface: var(--color-charcoal-800);
+                --color-text: var(--color-gray-200);
+                --color-text-secondary: rgba(var(--color-gray-300), 0.7);
+                --color-primary: var(--color-teal-300);
+                --color-primary-hover: var(--color-teal-400);
+                --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+                --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: var(--radius-base);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-base);
+            border: 1px solid var(--color-border);
+            background: var(--color-background);
+            color: var(--color-text);
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 4px;
+            font-weight: 600;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: var(--radius-base);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: rgba(var(--color-teal-500-rgb), 0.15);
+            color: var(--color-primary);
+            border: 1px solid rgba(var(--color-teal-500-rgb), 0.25);
+        }
+
+        .status.waiting {
+            background: var(--color-secondary);
+            color: var(--color-text-secondary);
+        }
+
+        .room-code-display {
+            text-align: center;
+            padding: 30px;
+            background: var(--color-background);
+            border-radius: var(--radius-base);
+            margin-bottom: 20px;
+        }
+
+        .room-code-display h2 {
+            font-size: 48px;
+            letter-spacing: 8px;
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+
+        .room-code-display p {
+            color: var(--color-text-secondary);
+            margin-top: 8px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-base);
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--color-primary);
+            background: rgba(var(--color-teal-500-rgb), 0.05);
+        }
+
+        .drop-zone svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            color: var(--color-text-secondary);
+        }
+
+        .drop-zone h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .drop-zone p {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .image-item {
+            position: relative;
+            border-radius: var(--radius-base);
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            aspect-ratio: 1;
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-item .progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .image-item .progress-bar {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s;
+        }
+
+        .transfer-info {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--color-background);
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .transfer-info span {
+            color: var(--color-text-secondary);
+        }
+
+        .transfer-info strong {
+            color: var(--color-text);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .room-code-display h2 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 LocalSnap Transfer</h1>
+            <p>Direct WiFi image transfer between any devices</p>
+            <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">
+                Works on Windows, Mac, Linux, iPhone, Android, iPad
+            </p>
+            <div id="localIpDisplay" class="status waiting" style="margin-top: 12px; font-size: 13px;">
+                Detecting network...
+            </div>
+            <div id="androidInstructions" class="status waiting" style="margin-top: 8px; font-size: 12px; display: none;">
+                <strong>Android/Other Device:</strong> Open this URL in your browser
+            </div>
+        </div>
+
+        <!-- How to Use Section -->
+        <div id="howToUse" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px;">
+            <h3 style="margin-bottom: 16px; color: var(--color-primary);">📖 How to Use</h3>
+            <div style="display: grid; gap: 16px;">
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: var(--color-primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">1</div>
+                    <div>
+                        <strong>Open on Windows/Mac (Device 1)</strong>
+                        <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 4px;">
+                            Start the server and open in Chrome/Edge: <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">http://localhost:3001</code>
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: var(--color-primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">2</div>
+                    <div>
+                        <strong>Find Your Network IP Address</strong>
+                        <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 4px;">
+                            <strong>Windows:</strong> Press <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">Win + R</code>, type <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">cmd</code>, then type <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">ipconfig</code>. Look for <strong>IPv4 Address</strong><br>
+                            <strong>Mac:</strong> System Preferences → Network → Advanced → TCP/IP<br>
+                            <strong>Example IPs:</strong> 192.168.1.100, 192.168.0.50, 10.0.0.25
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: var(--color-primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">3</div>
+                    <div>
+                        <strong>Open SAME URL on Other Device</strong>
+                        <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 4px;">
+                            ✅ Connect other device to <strong>same WiFi network</strong><br>
+                            ✅ Open browser (Chrome/Safari) and type: <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">http://YOUR_IP:3001</code><br>
+                            ✅ Example: <code style="background: var(--color-background); padding: 2px 6px; border-radius: 4px;">http://192.168.1.100:3001</code><br>
+                            <strong style="color: var(--color-primary);">⚠️ Must be EXACT same URL on both devices!</strong>
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: var(--color-primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">4</div>
+                    <div>
+                        <strong>Create & Join Room</strong>
+                        <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 4px;">
+                            On Device 1: Click <strong>"Create Room"</strong> → Get 6-digit code<br>
+                            On Device 2: Click <strong>"Join Room"</strong> → Enter the code
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: var(--color-primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">5</div>
+                    <div>
+                        <strong>Transfer Images</strong>
+                        <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 4px;">
+                            Drag & drop images or click to browse. Images transfer directly over WiFi at 50-150 Mbps! 🚀
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 16px; padding: 12px; background: rgba(var(--color-teal-500-rgb), 0.1); border-radius: 8px; font-size: 13px;">
+                <strong>💡 Tip:</strong> Both devices must be on the same WiFi network for direct transfer to work!
+            </div>
+        </div>
+
+        <!-- Home Screen -->
+        <div id="homeScreen">
+            <div class="card">
+                <button class="btn btn-primary" onclick="app.createRoom()">
+                    Create Room
+                </button>
+                <button class="btn btn-secondary" onclick="app.showJoinScreen()">
+                    Join Room
+                </button>
+            </div>
+        </div>
+
+        <!-- Join Screen -->
+        <div id="joinScreen" class="hidden">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; text-align: center;">Join Room</h2>
+                <div class="input-group">
+                    <label>Enter 6-digit room code</label>
+                    <input type="text" id="roomCodeInput" maxlength="6" placeholder="XXXXXX" style="text-transform: uppercase;">
+                </div>
+                <button class="btn btn-primary" onclick="app.joinRoom()">Join Room</button>
+                <button class="btn btn-secondary" onclick="app.showHomeScreen()">Back</button>
+            </div>
+        </div>
+
+        <!-- Transfer Screen -->
+        <div id="transferScreen" class="hidden">
+            <div class="card">
+                <div id="connectionStatus" class="status waiting">
+                    Connecting...
+                </div>
+
+                <div id="roomCodeDisplay" class="room-code-display">
+                    <p>Share this code with other device:</p>
+                    <h2 id="displayCode">------</h2>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;">
+                        Other device: Enter this code in "Join Room"
+                    </p>
+                </div>
+
+                <div id="transferInfo" class="transfer-info hidden">
+                    <div>
+                        <span>Sent: <strong id="sentCount">0</strong></span>
+                    </div>
+                    <div>
+                        <span>Received: <strong id="receivedCount">0</strong></span>
+                    </div>
+                    <div>
+                        <span>Speed: <strong id="transferSpeed">0 MB/s</strong></span>
+                    </div>
+                </div>
+
+                <div class="drop-zone" id="dropZone">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <h3>Drop images here</h3>
+                    <p>or click to browse</p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+
+                <div id="sendingImages" class="images-grid hidden"></div>
+
+                <div id="receivedImagesSection" class="hidden">
+                    <h3 style="margin-bottom: 16px;">Received Images</h3>
+                    <div id="receivedImages" class="images-grid"></div>
+                    <button class="btn btn-primary" onclick="app.downloadAll()">Download All</button>
+                </div>
+
+                <button class="btn btn-secondary" onclick="app.disconnect()">Disconnect</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const app = {
+            socket: null,
+            peerConnection: null,
+            dataChannel: null,
+            roomCode: null,
+            isHost: false,
+            receivedFiles: [],
+            sendingFiles: [],
+            transferStartTime: null,
+            totalBytesSent: 0,
+
+            init() {
+                // Display local IP address
+                this.displayLocalIP();
+                
+                // Connect to signaling server (auto-detect)
+                const serverUrl = this.getServerUrl();
+                this.socket = io(serverUrl);
+                
+                this.socket.on('room-created', (data) => {
+                    this.roomCode = data.roomCode;
+                    document.getElementById('displayCode').textContent = data.roomCode;
+                    document.getElementById('roomCodeDisplay').classList.remove('hidden');
+                    document.getElementById('connectionStatus').textContent = 'Room created! Share the code below with other device.';
+                    document.getElementById('connectionStatus').classList.remove('waiting');
+                    document.getElementById('connectionStatus').classList.add('connected');
+                });
+
+                this.socket.on('peer-joined', () => {
+                    document.getElementById('connectionStatus').textContent = 'Other device joined! Establishing connection...';
+                    document.getElementById('connectionStatus').classList.remove('waiting');
+                    document.getElementById('connectionStatus').style.background = 'rgba(var(--color-teal-500-rgb), 0.15)';
+                    if (this.isHost) {
+                        this.createOffer();
+                    }
+                });
+
+                this.socket.on('offer', async (data) => {
+                    await this.handleOffer(data.offer);
+                });
+
+                this.socket.on('answer', async (data) => {
+                    await this.handleAnswer(data.answer);
+                });
+
+                this.socket.on('ice-candidate', async (data) => {
+                    await this.handleIceCandidate(data.candidate);
+                });
+
+                this.socket.on('error', (data) => {
+                    alert(data.message);
+                    this.showHomeScreen();
+                });
+
+                // Setup drag and drop
+                const dropZone = document.getElementById('dropZone');
+                const fileInput = document.getElementById('fileInput');
+
+                dropZone.addEventListener('click', () => fileInput.click());
+
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                });
+
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('drag-over');
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('drag-over');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                });
+            },
+
+            async displayLocalIP() {
+                const displayEl = document.getElementById('localIpDisplay');
+                const androidEl = document.getElementById('androidInstructions');
+                
+                // Show current URL immediately
+                const currentUrl = window.location.href;
+                const currentHost = window.location.hostname;
+                const currentPort = window.location.port || '3001';
+                
+                // Always show the current URL being accessed
+                displayEl.innerHTML = `
+                    <strong>✅ Current Device URL:</strong> 
+                    <span style="color: var(--color-primary); font-weight: 600; word-break: break-all;">
+                        ${currentUrl}
+                    </span>
+                `;
+                displayEl.classList.remove('waiting');
+                displayEl.classList.add('connected');
+                
+                // Always try to detect network IP for better instructions
+                try {
+                    const pc = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                    });
+                    
+                    pc.createDataChannel('');
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    
+                    pc.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            const candidate = event.candidate.candidate;
+                            const ipRegex = /([0-9]{1,3}\.){3}[0-9]{1,3}/;
+                            const match = candidate.match(ipRegex);
+                            
+                            if (match && match[0] !== '0.0.0.0') {
+                                const detectedIP = match[0];
+                                
+                                if (detectedIP.startsWith('192.168') || detectedIP.startsWith('10.') || detectedIP.startsWith('172.')) {
+                                    const networkUrl = `http://${detectedIP}:${currentPort}`;
+                                    
+                                    // If currently on localhost, show warning and network URL
+                                    if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+                                        displayEl.innerHTML = `
+                                            <strong>⚠️ You're on localhost - Website won't work on other devices!</strong><br>
+                                            <span style="font-size: 12px;">
+                                                <strong style="color: var(--color-primary);">CLOSE THIS TAB</strong> and open:<br>
+                                                <span style="color: var(--color-primary); font-weight: 600; font-size: 14px;">${networkUrl}</span>
+                                            </span>
+                                        `;
+                                        displayEl.style.background = 'rgba(230, 129, 97, 0.15)';
+                                        displayEl.style.borderColor = 'rgba(230, 129, 97, 0.3)';
+                                        
+                                        androidEl.style.display = 'block';
+                                        androidEl.innerHTML = `
+                                            <strong>📱 After fixing above, on your Phone/Other Device:</strong><br>
+                                            Connect to <strong>same WiFi</strong> and open the same URL:<br>
+                                            <span style="color: var(--color-primary); font-weight: 600; font-size: 14px;">${networkUrl}</span>
+                                        `;
+                                        androidEl.classList.remove('waiting');
+                                        androidEl.classList.add('connected');
+                                        androidEl.style.background = 'rgba(230, 129, 97, 0.15)';
+                                    } else {
+                                        // Already on network IP - show instructions
+                                        androidEl.style.display = 'block';
+                                        androidEl.innerHTML = `
+                                            <strong>📱 On Other Device (Phone/Tablet):</strong><br>
+                                            ✅ Make sure both devices are on the <strong>same WiFi network</strong><br>
+                                            ✅ Open this URL in Chrome/Safari:<br>
+                                            <span style="color: var(--color-primary); font-weight: 600; font-size: 14px; word-break: break-all;">
+                                                ${currentUrl}
+                                            </span><br>
+                                            <span style="font-size: 11px; color: var(--color-text-secondary);">
+                                                If website doesn't load, check WiFi connection or try: ${networkUrl}
+                                            </span>
+                                        `;
+                                        androidEl.classList.remove('waiting');
+                                        androidEl.classList.add('connected');
+                                    }
+                                }
+                                
+                                pc.close();
+                            }
+                        }
+                    };
+                    
+                    setTimeout(() => pc.close(), 3000);
+                    
+                } catch (error) {
+                    console.error('Error detecting IP:', error);
+                    
+                    // Fallback instructions
+                    if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+                        displayEl.innerHTML = `
+                            <strong>⚠️ Localhost Won't Work on Other Devices!</strong><br>
+                            <span style="font-size: 11px;">
+                                Windows: Press <code>Win+R</code> → type <code>cmd</code> → type <code>ipconfig</code><br>
+                                Find <strong>IPv4 Address</strong> (e.g., 192.168.1.100)<br>
+                                Then open: <code>http://YOUR_IP:${currentPort}</code> on BOTH devices
+                            </span>
+                        `;
+                        displayEl.style.background = 'rgba(230, 129, 97, 0.15)';
+                        displayEl.style.borderColor = 'rgba(230, 129, 97, 0.3)';
+                    } else {
+                        androidEl.style.display = 'block';
+                        androidEl.innerHTML = `
+                            <strong>📱 On Other Device:</strong> Open same URL on same WiFi network<br>
+                            <span style="color: var(--color-primary); font-weight: 600; font-size: 14px;">${currentUrl}</span>
+                        `;
+                        androidEl.classList.remove('waiting');
+                        androidEl.classList.add('connected');
+                    }
+                }
+            },
+
+            getServerUrl() {
+                // Always use the same host and port as the current page
+                const hostname = window.location.hostname;
+                const port =  '3000';
+                const protocol = window.location.protocol;
+                
+                // Build server URL from current page URL
+                return `${protocol}//${hostname}:${port}`;
+            },
+
+            createRoom() {
+                this.isHost = true;
+                this.socket.emit('create-room');
+                this.showTransferScreen();
+                this.setupPeerConnection();
+            },
+
+            showJoinScreen() {
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('joinScreen').classList.remove('hidden');
+            },
+
+            joinRoom() {
+                const input = document.getElementById('roomCodeInput');
+                const code = input.value.toUpperCase().trim();
+                
+                if (code.length !== 6) {
+                    alert('Please enter a valid 6-digit code');
+                    return;
+                }
+                console.log("Joining room with code:", code);
+
+                this.roomCode = code;
+                this.isHost = false;
+                this.socket.emit('join-room', { roomCode: code });
+                this.showTransferScreen();
+                this.setupPeerConnection();
+                document.getElementById('connectionStatus').textContent = 'Joining room... Establishing connection...';
+            },
+
+            showHomeScreen() {
+                document.getElementById('homeScreen').classList.remove('hidden');
+                document.getElementById('joinScreen').classList.add('hidden');
+                document.getElementById('transferScreen').classList.add('hidden');
+            },
+
+            showTransferScreen() {
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('joinScreen').classList.add('hidden');
+                document.getElementById('transferScreen').classList.remove('hidden');
+            },
+
+            setupPeerConnection() {
+                this.peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' }
+                    ]
+                });
+
+                this.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        this.socket.emit('ice-candidate', {
+                            roomCode: this.roomCode,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                this.peerConnection.ondatachannel = (event) => {
+                    this.dataChannel = event.channel;
+                    this.setupDataChannel();
+                };
+
+                if (this.isHost) {
+                    this.dataChannel = this.peerConnection.createDataChannel('file-transfer');
+                    this.setupDataChannel();
+                }
+            },
+
+            setupDataChannel() {
+                this.dataChannel.binaryType = 'arraybuffer';
+
+                this.dataChannel.onopen = () => {
+                    document.getElementById('connectionStatus').textContent = '● Connected - Ready to transfer!';
+                    document.getElementById('connectionStatus').classList.remove('waiting');
+                    document.getElementById('connectionStatus').classList.add('connected');
+                    document.getElementById('transferInfo').classList.remove('hidden');
+                    
+                    // Send queued files if any
+                    if (this.sendingFiles && this.sendingFiles.length > 0) {
+                        this.sendingFiles.forEach(file => this.sendFile(file));
+                        this.sendingFiles = [];
+                    }
+                };
+
+                this.dataChannel.onclose = () => {
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').classList.remove('connected');
+                    document.getElementById('connectionStatus').classList.add('waiting');
+                };
+
+                this.dataChannel.onmessage = (event) => {
+                    this.handleIncomingData(event.data);
+                };
+            },
+
+            async createOffer() {
+                const offer = await this.peerConnection.createOffer();
+                await this.peerConnection.setLocalDescription(offer);
+                this.socket.emit('offer', {
+                    roomCode: this.roomCode,
+                    offer: offer
+                });
+            },
+
+            async handleOffer(offer) {
+                await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await this.peerConnection.createAnswer();
+                await this.peerConnection.setLocalDescription(answer);
+                this.socket.emit('answer', {
+                    roomCode: this.roomCode,
+                    answer: answer
+                });
+            },
+
+            async handleAnswer(answer) {
+                await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            },
+
+            async handleIceCandidate(candidate) {
+                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            },
+
+            handleFiles(files) {
+                // Allow file selection even before connection, queue them
+                const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+                
+                if (imageFiles.length === 0) {
+                    alert('Please select image files only');
+                    return;
+                }
+
+                // If not connected, queue files and show message
+                if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
+                    this.sendingFiles = imageFiles;
+                    alert('Files ready! They will send automatically once connected. Make sure the other device joins the room.');
+                    // Try to send when connection opens
+                    const checkConnection = setInterval(() => {
+                        if (this.dataChannel && this.dataChannel.readyState === 'open') {
+                            clearInterval(checkConnection);
+                            this.sendingFiles.forEach(file => this.sendFile(file));
+                            this.sendingFiles = [];
+                        }
+                    }, 500);
+                    return;
+                }
+
+                imageFiles.forEach(file => this.sendFile(file));
+            },
+
+            async sendFile(file) {
+                const CHUNK_SIZE = 16384; // 16KB chunks
+                const fileReader = new FileReader();
+                
+                // Show preview
+                const container = document.getElementById('sendingImages');
+                container.classList.remove('hidden');
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'image-item';
+                imgDiv.innerHTML = `
+                    <img src="${URL.createObjectURL(file)}" alt="${file.name}">
+                    <div class="progress"><div class="progress-bar" style="width: 0%"></div></div>
+                `;
+                container.appendChild(imgDiv);
+
+                fileReader.onload = async (e) => {
+                    const arrayBuffer = e.target.result;
+                    const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
+
+                    // Send metadata
+                    this.dataChannel.send(JSON.stringify({
+                        type: 'metadata',
+                        name: file.name,
+                        size: arrayBuffer.byteLength,
+                        mimeType: file.type,
+                        totalChunks: totalChunks
+                    }));
+
+                    // Send chunks
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * CHUNK_SIZE;
+                        const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
+                        const chunk = arrayBuffer.slice(start, end);
+                        
+                        this.dataChannel.send(chunk);
+                        this.totalBytesSent += chunk.byteLength;
+
+                        // Update progress
+                        const progress = ((i + 1) / totalChunks) * 100;
+                        imgDiv.querySelector('.progress-bar').style.width = progress + '%';
+
+                        // Update speed
+                        this.updateTransferSpeed();
+
+                        // Small delay to prevent overwhelming the channel
+                        if (i % 10 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 1));
+                        }
+                    }
+
+                    // Send completion signal
+                    this.dataChannel.send(JSON.stringify({ type: 'complete' }));
+
+                    // Update sent count
+                    const sentCount = document.getElementById('sentCount');
+                    sentCount.textContent = parseInt(sentCount.textContent) + 1;
+                };
+
+                fileReader.readAsArrayBuffer(file);
+                
+                if (!this.transferStartTime) {
+                    this.transferStartTime = Date.now();
+                }
+            },
+
+            currentFile: null,
+            receivedChunks: [],
+
+            handleIncomingData(data) {
+                if (typeof data === 'string') {
+                    const message = JSON.parse(data);
+                    
+                    if (message.type === 'metadata') {
+                        this.currentFile = message;
+                        this.receivedChunks = [];
+                    } else if (message.type === 'complete') {
+                        this.reconstructFile();
+                    }
+                } else {
+                    this.receivedChunks.push(data);
+                }
+            },
+
+            reconstructFile() {
+                if (!this.currentFile) return;
+
+                const blob = new Blob(this.receivedChunks, { type: this.currentFile.mimeType });
+                const url = URL.createObjectURL(blob);
+
+                // Display received image
+                const container = document.getElementById('receivedImages');
+                const section = document.getElementById('receivedImagesSection');
+                section.classList.remove('hidden');
+
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'image-item';
+                imgDiv.innerHTML = `<img src="${url}" alt="${this.currentFile.name}">`;
+                container.appendChild(imgDiv);
+
+                this.receivedFiles.push({ name: this.currentFile.name, url: url, blob: blob });
+
+                // Update received count
+                const receivedCount = document.getElementById('receivedCount');
+                receivedCount.textContent = parseInt(receivedCount.textContent) + 1;
+
+                // Reset for next file
+                this.currentFile = null;
+                this.receivedChunks = [];
+            },
+
+            updateTransferSpeed() {
+                if (!this.transferStartTime) return;
+
+                const elapsedSeconds = (Date.now() - this.transferStartTime) / 1000;
+                const megabytes = this.totalBytesSent / (1024 * 1024);
+                const speed = (megabytes / elapsedSeconds).toFixed(2);
+
+                document.getElementById('transferSpeed').textContent = speed + ' MB/s';
+            },
+
+            downloadAll() {
+                this.receivedFiles.forEach(file => {
+                    const a = document.createElement('a');
+                    a.href = file.url;
+                    a.download = file.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            },
+
+            disconnect() {
+                if (this.dataChannel) {
+                    this.dataChannel.close();
+                }
+                if (this.peerConnection) {
+                    this.peerConnection.close();
+                }
+                if (this.socket) {
+                    this.socket.emit('leave-room', { roomCode: this.roomCode });
+                }
+                this.showHomeScreen();
+                location.reload();
+            }
+        };
+
+        // Initialize app on load
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
