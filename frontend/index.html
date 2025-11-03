@@ -462,7 +462,7 @@
                 this.displayLocalIP();
                 
                 // Connect to signaling server (auto-detect)
-                const serverUrl = 'https://localsnap.vercel.app/'
+                const serverUrl = 'https://localsnapserver.onrender.com/'
                 this.socket = io(serverUrl);
                 
                 this.socket.on('room-created', (data) => {
