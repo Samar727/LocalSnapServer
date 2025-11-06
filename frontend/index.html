@@ -296,6 +296,9 @@
             }
         }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 
 <body>
@@ -427,8 +430,27 @@
         <div id="joinScreen" class="hidden">
             <div class="card">
                 <h2 style="margin-bottom: 20px; text-align: center;">Join Room</h2>
+
+                <!-- ✅ ADD SCANNER BUTTON -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button onclick="app.toggleQRScanner()" class="btn btn-secondary" id="scanQRBtn">
+                        📷 Scan QR Code
+                    </button>
+                </div>
+
+                <!-- ✅ ADD SCANNER CONTAINER -->
+                <div id="qrScannerContainer" style="display: none; margin: 20px 0;">
+                    <div id="qr-reader"
+                        style="width: 100%; max-width: 500px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px solid var(--color-border);">
+                    </div>
+                    <button onclick="app.stopQRScanner()" class="btn btn-secondary"
+                        style="margin-top: 15px; width: 100%;">
+                        ❌ Stop Scanner
+                    </button>
+                </div>
+
                 <div class="input-group">
-                    <label>Enter 6-digit room code</label>
+                    <label>Or enter 6-digit room code manually</label>
                     <input type="text" id="roomCodeInput" maxlength="6" placeholder="XXXXXX"
                         style="text-transform: uppercase;">
                 </div>
@@ -447,8 +469,19 @@
                 <div id="roomCodeDisplay" class="room-code-display">
                     <p>Share this code with other device:</p>
                     <h2 id="displayCode">------</h2>
-                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;">
-                        Other device: Enter this code in "Join Room"
+
+                    <!-- ✅ ADD QR CODE SECTION -->
+                    <div style="margin-top: 20px; text-align: center;">
+                        <p style="font-size: 14px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                            Or scan this QR code:
+                        </p>
+                        <div id="qrcode"
+                            style="display: inline-block; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        </div>
+                    </div>
+
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 12px;">
+                        Other device: Enter this code in "Join Room" or scan QR code
                     </p>
                 </div>
 
@@ -522,6 +555,8 @@
             receivingFiles: new Map(),
             sendQueue: [],
             isSending: false,
+            qrScanner: null,
+            speedUpdateInterval: null,
 
             init() {
                 // Display local IP address
@@ -535,6 +570,10 @@
                     this.roomCode = data.roomCode;
                     document.getElementById('displayCode').textContent = data.roomCode;
                     document.getElementById('roomCodeDisplay').classList.remove('hidden');
+
+                    // ✅ ADD THIS: Generate QR code
+                    this.generateQRCode(data.roomCode);
+
                     document.getElementById('connectionStatus').textContent = 'Room created! Share the code below with other device.';
                     document.getElementById('connectionStatus').classList.remove('waiting');
                     document.getElementById('connectionStatus').classList.add('connected');
@@ -786,6 +825,7 @@
 
 
             showJoinScreen() {
+                this.stopQRScanner();
                 document.getElementById('homeScreen').classList.add('hidden');
                 document.getElementById('joinScreen').classList.remove('hidden');
             },
@@ -809,6 +849,7 @@
             },
 
             showHomeScreen() {
+                this.stopQRScanner();
                 document.getElementById('homeScreen').classList.remove('hidden');
                 document.getElementById('joinScreen').classList.add('hidden');
                 document.getElementById('transferScreen').classList.add('hidden');
@@ -873,6 +914,128 @@
                 };
             },
 
+            generateQRCode(roomCode) {
+                const qrcodeDiv = document.getElementById('qrcode');
+                if (!qrcodeDiv) return;
+
+                qrcodeDiv.innerHTML = ''; // Clear any existing QR code
+
+                try {
+                    new QRCode(qrcodeDiv, {
+                        text: roomCode,
+                        width: 180,
+                        height: 180,
+                        colorDark: '#21808d',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (error) {
+                    console.error('Failed to generate QR code:', error);
+                }
+            },
+
+            toggleQRScanner() {
+                const scannerContainer = document.getElementById('qrScannerContainer');
+                const scanBtn = document.getElementById('scanQRBtn');
+
+                if (!scannerContainer || !scanBtn) return;
+
+                if (scannerContainer.style.display === 'none' || !scannerContainer.style.display) {
+                    scannerContainer.style.display = 'block';
+                    scanBtn.textContent = '⏸️ Hide Scanner';
+                    this.startQRScanner();
+                } else {
+                    this.stopQRScanner();
+                }
+            },
+
+            async startQRScanner() {
+                try {
+                    // ✅ STEP 1: Request camera permission explicitly
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: "environment" }
+                    });
+
+                    // Stop the stream immediately after permission is granted
+                    stream.getTracks().forEach(track => track.stop());
+
+                    // ✅ STEP 2: Now start the QR scanner
+                    this.qrScanner = new Html5Qrcode("qr-reader");
+
+                    const config = {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
+                    };
+
+                    await this.qrScanner.start(
+                        { facingMode: "environment" },
+                        config,
+                        (decodedText) => {
+                            // When QR code is successfully scanned
+                            if (decodedText && decodedText.length === 6 && /^[A-Z0-9]+$/i.test(decodedText)) {
+                                console.log('QR Code scanned:', decodedText.toUpperCase());
+
+                                // Fill the input field
+                                document.getElementById('roomCodeInput').value = decodedText.toUpperCase();
+
+                                // Stop scanner
+                                this.stopQRScanner();
+
+                                // Show success message
+                                alert(`QR Code detected: ${decodedText.toUpperCase()}\n\nJoining room...`);
+
+                                // Auto-join room
+                                setTimeout(() => {
+                                    this.joinRoom();
+                                }, 500);
+                            }
+                        },
+                        (error) => {
+                            // Ignore scanning errors (happens frequently while scanning)
+                        }
+                    );
+
+                    console.log('QR Scanner started successfully');
+
+                } catch (err) {
+                    console.error('Camera permission or scanner error:', err);
+
+                    // ✅ Better error messages based on error type
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        alert('Camera permission denied.\n\nPlease:\n1. Allow camera access in browser settings\n2. Reload the page\n3. Try scanning again\n\nOr enter the code manually below.');
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        alert('No camera found on this device.\n\nPlease enter the room code manually.');
+                    } else if (err.name === 'NotReadableError') {
+                        alert('Camera is being used by another app.\n\nPlease close other apps using the camera and try again.');
+                    } else {
+                        alert('Unable to access camera.\n\nPlease enter the room code manually below.\n\nError: ' + err.message);
+                    }
+
+                    this.stopQRScanner();
+                }
+            },
+
+
+            async stopQRScanner() {
+                if (this.qrScanner) {
+                    try {
+                        await this.qrScanner.stop();
+                        this.qrScanner.clear();
+                        this.qrScanner = null;
+                    } catch (err) {
+                        console.error('Error stopping scanner:', err);
+                    }
+                }
+
+                const scannerContainer = document.getElementById('qrScannerContainer');
+                const scanBtn = document.getElementById('scanQRBtn');
+
+                if (scannerContainer) scannerContainer.style.display = 'none';
+                if (scanBtn) scanBtn.textContent = '📷 Scan QR Code';
+            },
+
+
             async createOffer() {
                 const offer = await this.peerConnection.createOffer();
                 await this.peerConnection.setLocalDescription(offer);
@@ -926,18 +1089,23 @@
             handleFiles(files) {
                 console.log('handleFiles called with', files.length, 'files');
 
-                // Convert FileList to Array and filter images AND videos
-                const mediaFiles = Array.from(files).filter(file => {
+                // ✅ MEMORY FIX: Don't keep references to filtered files unnecessarily
+                // Process and filter in one pass
+                const mediaFiles = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
                     const isImage = file.type.startsWith('image/') ||
                         file.name.match(/\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|svg)$/i);
                     const isVideo = file.type.startsWith('video/') ||
                         file.name.match(/\.(mp4|mov|avi|webm|mkv|flv|wmv|m4v)$/i);
 
-                    if (!isImage && !isVideo) {
+                    if (isImage || isVideo) {
+                        mediaFiles.push(file);
+                    } else {
                         console.log('Skipping non-media file:', file.name, file.type);
                     }
-                    return isImage || isVideo;
-                });
+                }
 
                 if (mediaFiles.length === 0) {
                     alert('No valid media files found. Please select images or videos.');
@@ -954,13 +1122,23 @@
                     );
                     if (!proceed) {
                         console.log('User cancelled large batch transfer');
+                        // ✅ MEMORY FIX: Clear array to free references
+                        mediaFiles.length = 0;
                         return;
                     }
                 }
 
-                // Add files to queue
+                // ✅ SPEED FIX: Add files to queue more efficiently
                 const previousCount = this.sendQueue.length;
-                this.sendQueue.push(...mediaFiles);
+
+                // Instead of spread operator which creates intermediate array:
+                // this.sendQueue.push(...mediaFiles);
+
+                // Use loop for better memory efficiency with large batches:
+                for (let i = 0; i < mediaFiles.length; i++) {
+                    this.sendQueue.push(mediaFiles[i]);
+                }
+
                 console.log(`Queue updated: ${previousCount} → ${this.sendQueue.length} files`);
 
                 // Show visual feedback
@@ -1000,127 +1178,335 @@
 
 
 
+
             // ✅ FIX: Process send queue one file at a time
             async processSendQueue() {
-                if (this.isSending || this.sendQueue.length === 0) return;
+                if (this.isSending) return;
+                if (this.sendQueue.length === 0) return;
 
                 this.isSending = true;
+                try {
+                    while (this.sendQueue.length > 0) {
+                        const file = this.sendQueue.shift();
+                        try {
+                            await this.sendFile(file);
+                            await new Promise(r => setTimeout(r, 50));
+                        } catch (e) {
+                            console.error('File send failed:', file?.name, e);
+                        }
+                    }
+                } finally {
+                    this.isSending = false;
 
-                while (this.sendQueue.length > 0) {
-                    const file = this.sendQueue.shift();
-                    await this.sendFile(file);
-                    // Small delay between files
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // ✅ ADD THIS: Stop speed updates when queue is empty
+                    if (this.speedUpdateInterval) {
+                        clearInterval(this.speedUpdateInterval);
+                        this.speedUpdateInterval = null;
+                    }
+
+                    // Reset for next batch
+                    this.transferStartTime = null;
+                    this.totalBytesSent = 0;
                 }
-
-                this.isSending = false;
             },
+
+
 
             // ✅ FIX: Improved sendFile with buffer management and unique IDs
             async sendFile(file) {
-                const CHUNK_SIZE = 16384; // 16KB chunks
-                const MAX_BUFFER = 1048576; // 1MB buffer limit
-                const fileReader = new FileReader();
+                // --- CONFIG (derive safe chunk size from SCTP) ---
+                const pc = this.peerConnection;
+                const dc = this.dataChannel;
+                if (!dc) throw new Error('No dataChannel available');
+                if (dc.readyState !== 'open') throw new Error('DataChannel not open');
 
-                // Generate unique file ID
-                const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                // Ensure binary frames are delivered as ArrayBuffer to onmessage
+                try { dc.binaryType = 'arraybuffer'; } catch { }
 
-                // Show preview
+
+
+                // Negotiate safe chunk size: never exceed SCTP maxMessageSize
+                const sctpMax = (pc && pc.sctp && typeof pc.sctp.maxMessageSize === 'number')
+                    ? pc.sctp.maxMessageSize
+                    : 65536; // safe default 64 KiB
+                const CHUNK_SIZE = Math.min(64 * 1024, sctpMax); // ≤ negotiated limit
+
+                // Backpressure thresholds; start conservatively for mobile, tune up for desktop
+                const MAX_BUFFER = 8 * 1024 * 1024; // 8 MiB high water mark
+                try { dc.bufferedAmountLowThreshold = Math.floor(MAX_BUFFER / 2); } catch { }
+
+                const READ_BLOCK_SIZE = 32 * 1024 * 1024; // 32 MiB block reads for large files
+                const ONE_GB = 1024 * 1024 * 1024;
+
+                // UI setup
+                const fileId = Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                const totalChunksBySize = Math.ceil(file.size / CHUNK_SIZE);
                 const container = document.getElementById('sendingImages');
-                container.classList.remove('hidden');
+                if (container) container.classList.remove('hidden');
+
                 const imgDiv = document.createElement('div');
                 imgDiv.className = 'image-item';
                 imgDiv.id = 'send-' + fileId;
-
-                // Check if it's a video
-                const isVideo = file.type.startsWith('video/');
-                const previewHTML = isVideo ?
-                    `<video src="${URL.createObjectURL(file)}" style="width: 100%; border-radius: 8px;" controls></video>` :
-                    `<img src="${URL.createObjectURL(file)}" alt="${file.name}">`;
-
                 imgDiv.innerHTML = `
-    ${previewHTML}
-    <div class="progress"><div class="progress-bar" style="width: 0%"></div></div>
-`;
-                container.appendChild(imgDiv);
+    <div style="text-align:center;padding:12px;">
+      <strong>${file.name}</strong>
+      <div style="font-size:12px;color:#64748b">${fileSizeMB} MB</div>
+    </div>
+    <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
+    <div id="progress-${fileId}" style="font-size:12px;text-align:center;margin-top:8px;color:#64748b">Preparing...</div>
+  `;
+                container && container.appendChild(imgDiv);
+                const progressText = document.getElementById(`progress-${fileId}`);
+                const progressBar = imgDiv.querySelector('.progress-bar');
 
+                // ✅ ADD THIS: Start periodic speed updates
+                if (!this.speedUpdateInterval) {
+                    this.speedUpdateInterval = setInterval(() => {
+                        this.updateTransferSpeed();
+                    }, 1000); // Update every 1000ms
+                }
+
+                clearInterval(this.speedUpdateInterval);
+                this.speedUpdateInterval = null;
+
+                if (!this.transferStartTime) {
+                    this.transferStartTime = Date.now();
+                }
+
+                // Backpressure wait: event + poll + timeout
+                const waitForBufferLow = (timeoutMs = 30000) => new Promise((resolve, reject) => {
+                    if (dc.bufferedAmount <= MAX_BUFFER) return resolve();
+                    let done = false;
+                    const onLow = () => {
+                        if (done) return;
+                        if (dc.bufferedAmount <= MAX_BUFFER) { cleanup(); resolve(); }
+                    };
+                    const cleanup = () => {
+                        done = true;
+                        try { dc.removeEventListener('bufferedamountlow', onLow); } catch { }
+                        clearInterval(poll);
+                        clearTimeout(to);
+                    };
+                    try { dc.addEventListener('bufferedamountlow', onLow); } catch { }
+                    const poll = setInterval(() => {
+                        if (done) return;
+                        if (dc.bufferedAmount <= MAX_BUFFER) { cleanup(); resolve(); }
+                    }, 10);
+                    const to = setTimeout(() => { cleanup(); reject(new Error('buffer-wait-timeout')); }, timeoutMs);
+                });
+
+                // Safe send that always respects backpressure (headers and data)
+                const sendSafely = async (data) => {
+                    if (dc.bufferedAmount > MAX_BUFFER) {
+                        try { await waitForBufferLow(); } catch { await new Promise(r => setTimeout(r, 100)); }
+                    }
+                    let attempts = 0;
+                    while (true) {
+                        if (!dc || dc.readyState !== 'open') throw new Error('DataChannel not open');
+                        try { dc.send(data); return; }
+                        catch (err) {
+                            attempts++;
+                            try { await waitForBufferLow(); } catch { }
+                            if (attempts >= 8) throw new Error(`sendSafely failed after ${attempts} attempts: ${err?.message || err}`);
+                            await new Promise(r => setTimeout(r, 50 * attempts));
+                        }
+                    }
+                };
+
+                // Send metadata first with totalChunks for receiver validation
+                try {
+                    await sendSafely(JSON.stringify({
+                        type: 'metadata',
+                        fileId,
+                        name: file.name,
+                        size: file.size,
+                        mimeType: file.type,
+                        totalChunks: totalChunksBySize
+                    }));
+                } catch (err) {
+                    if (progressText) { progressText.textContent = '❌ Failed to send metadata'; progressText.style.color = '#ef4444'; }
+                    throw err;
+                }
+
+                if (!this.transferStartTime) this.transferStartTime = Date.now();
+
+                // Single monotonic counters shared by both paths
+                let absoluteChunkIndex = 0;
+                let absoluteBytesSentForThisFile = 0;
+
+                // SMALL FILE PATH (in-memory)
+                if (file.size <= ONE_GB) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        const cleanupReader = () => { reader.onload = null; reader.onerror = null; };
+
+                        reader.onload = async (ev) => {
+                            try {
+                                const wholeView = new Uint8Array(ev.target.result);
+                                const totalChunks = Math.ceil(wholeView.byteLength / CHUNK_SIZE);
+                                if (progressText) progressText.textContent = 'Transferring...';
+
+                                for (let i = 0; i < totalChunks; i++) {
+                                    const start = i * CHUNK_SIZE;
+                                    const end = Math.min(start + CHUNK_SIZE, wholeView.byteLength);
+                                    const chunkView = wholeView.subarray(start, end);
+                                    const bytesThisChunk = chunkView.byteLength;
+
+                                    // Header (guard on backpressure)
+                                    await sendSafely(JSON.stringify({
+                                        type: 'chunk',
+                                        fileId,
+                                        chunkIndex: absoluteChunkIndex,
+                                        byteOffset: absoluteBytesSentForThisFile,
+                                        byteLength: bytesThisChunk
+                                    }));
+
+                                    // Data
+                                    await sendSafely(chunkView);
+
+                                    // Progress
+                                    absoluteChunkIndex++;
+                                    absoluteBytesSentForThisFile += bytesThisChunk;
+                                    this.totalBytesSent = (this.totalBytesSent || 0) + bytesThisChunk;
+
+                                    this.updateTransferSpeed();
+
+                                    const pct = (absoluteBytesSentForThisFile / file.size) * 100;
+                                    if (progressBar) progressBar.style.width = pct.toFixed(2) + '%';
+                                    if (progressText) {
+                                        const sentMB = (absoluteBytesSentForThisFile / (1024 * 1024)).toFixed(1);
+                                        progressText.textContent = `${pct.toFixed(1)}% (${sentMB} / ${fileSizeMB} MB)`;
+                                    }
+
+                                    if (i % 200 === 0) await new Promise(r => setTimeout(r, 0));
+                                }
+
+                                try { await sendSafely(JSON.stringify({ type: 'complete', fileId })); } catch { }
+                                if (progressText) { progressText.textContent = '✅ Sent successfully'; progressText.style.color = '#10b981'; }
+                                const sentCountEl = document.getElementById('sentCount');
+                                if (sentCountEl) sentCountEl.textContent = String((parseInt(sentCountEl.textContent || '0', 10) || 0) + 1);
+
+                                cleanupReader();
+                                resolve();
+                            } catch (err) {
+                                cleanupReader();
+                                if (progressText) { progressText.textContent = `❌ Failed: ${err.message}`; progressText.style.color = '#ef4444'; }
+                                reject(err);
+                            }
+                        };
+
+                        reader.onerror = (err) => {
+                            cleanupReader();
+                            if (progressText) { progressText.textContent = '❌ Failed to read file'; progressText.style.color = '#ef4444'; }
+                            reject(err);
+                        };
+
+                        try { reader.readAsArrayBuffer(file); } catch (err) { cleanupReader(); reject(err); }
+                    });
+                }
+
+                // LARGE FILE PATH (incremental reads)
                 return new Promise((resolve, reject) => {
-                    fileReader.onload = async (e) => {
+                    let offset = 0;
+                    const reader = new FileReader();
+                    const cleanupReader = () => { reader.onload = null; reader.onerror = null; };
+
+                    reader.onload = async (ev) => {
                         try {
-                            const arrayBuffer = e.target.result;
-                            const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
-
-                            // Send metadata with unique file ID
-                            this.dataChannel.send(JSON.stringify({
-                                type: 'metadata',
-                                fileId: fileId,
-                                name: file.name,
-                                size: arrayBuffer.byteLength,
-                                mimeType: file.type,
-                                totalChunks: totalChunks
-                            }));
-
-                            // Send chunks with buffer management
-                            for (let i = 0; i < totalChunks; i++) {
-                                // ✅ FIX: Wait if buffer is full
-                                while (this.dataChannel.bufferedAmount > MAX_BUFFER) {
-                                    await new Promise(resolve => setTimeout(resolve, 100));
-                                }
-
-                                const start = i * CHUNK_SIZE;
-                                const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
-                                const chunk = arrayBuffer.slice(start, end);
-
-                                // Send chunk header
-                                this.dataChannel.send(JSON.stringify({
-                                    type: 'chunk',
-                                    fileId: fileId,
-                                    chunkIndex: i
-                                }));
-
-                                // Send chunk data
-                                this.dataChannel.send(chunk);
-                                this.totalBytesSent += chunk.byteLength;
-
-                                // Update progress
-                                const progress = ((i + 1) / totalChunks) * 100;
-                                const progressBar = imgDiv.querySelector('.progress-bar');
-                                if (progressBar) {
-                                    progressBar.style.width = progress + '%';
-                                }
-
-                                // Update speed
-                                this.updateTransferSpeed();
+                            const wholeView = new Uint8Array(ev.target.result);
+                            const totalChunksInBlock = Math.ceil(wholeView.byteLength / CHUNK_SIZE);
+                            if (progressText && absoluteBytesSentForThisFile === 0) {
+                                progressText.textContent = 'Transferring...';
                             }
 
-                            // Send completion signal
-                            this.dataChannel.send(JSON.stringify({
-                                type: 'complete',
-                                fileId: fileId
-                            }));
+                            for (let i = 0; i < totalChunksInBlock; i++) {
+                                const start = i * CHUNK_SIZE;
+                                const end = Math.min(start + CHUNK_SIZE, wholeView.byteLength);
+                                const chunkView = wholeView.subarray(start, end);
+                                const bytesThisChunk = chunkView.byteLength;
 
-                            // Update sent count
-                            const sentCount = document.getElementById('sentCount');
-                            sentCount.textContent = parseInt(sentCount.textContent) + 1;
+                                // Header
+                                await sendSafely(JSON.stringify({
+                                    type: 'chunk',
+                                    fileId,
+                                    chunkIndex: absoluteChunkIndex,
+                                    byteOffset: offset + start,
+                                    byteLength: bytesThisChunk
+                                }));
 
-                            resolve();
-                        } catch (error) {
-                            console.error('Error sending file:', error);
-                            reject(error);
+                                // Data
+                                await sendSafely(chunkView);
+
+                                // Progress
+                                absoluteChunkIndex++;
+                                absoluteBytesSentForThisFile += bytesThisChunk;
+                                this.totalBytesSent = (this.totalBytesSent || 0) + bytesThisChunk;
+
+                                this.updateTransferSpeed();
+
+                                const pct = (absoluteBytesSentForThisFile / file.size) * 100;
+                                if (progressBar) progressBar.style.width = pct.toFixed(2) + '%';
+                                if (progressText) {
+                                    const sentMB = (absoluteBytesSentForThisFile / (1024 * 1024)).toFixed(1);
+                                    progressText.textContent = `${pct.toFixed(1)}% (${sentMB} / ${fileSizeMB} MB)`;
+                                }
+
+                                if (i % 200 === 0) await new Promise(r => setTimeout(r, 0));
+                            }
+
+                            offset += wholeView.byteLength;
+
+                            if (offset < file.size) {
+                                setTimeout(() => {
+                                    try {
+                                        const slice = file.slice(offset, Math.min(offset + READ_BLOCK_SIZE, file.size));
+                                        reader.readAsArrayBuffer(slice);
+                                    } catch (err) {
+                                        cleanupReader();
+                                        if (progressText) { progressText.textContent = `❌ Failed reading chunk: ${err.message}`; progressText.style.color = '#ef4444'; }
+                                        reject(err);
+                                    }
+                                }, 0);
+                            } else {
+                                try { await sendSafely(JSON.stringify({ type: 'complete', fileId })); } catch { }
+                                if (progressText) { progressText.textContent = '✅ Sent successfully'; progressText.style.color = '#10b981'; }
+                                const sentCountEl = document.getElementById('sentCount');
+                                if (sentCountEl) sentCountEl.textContent = String((parseInt(sentCountEl.textContent || '0', 10) || 0) + 1);
+                                cleanupReader();
+                                resolve();
+                            }
+                        } catch (err) {
+                            cleanupReader();
+                            if (progressText) { progressText.textContent = `❌ Failed: ${err.message}`; progressText.style.color = '#ef4444'; }
+                            reject(err);
                         }
                     };
 
-                    fileReader.onerror = reject;
-                    fileReader.readAsArrayBuffer(file);
+                    reader.onerror = (err) => {
+                        cleanupReader();
+                        if (progressText) { progressText.textContent = '❌ Failed to read file'; progressText.style.color = '#ef4444'; }
+                        reject(err);
+                    };
 
-                    if (!this.transferStartTime) {
-                        this.transferStartTime = Date.now();
+                    try {
+                        const firstSlice = file.slice(0, Math.min(READ_BLOCK_SIZE, file.size));
+                        reader.readAsArrayBuffer(firstSlice);
+                    } catch (err) {
+                        cleanupReader();
+                        reject(err);
                     }
                 });
             },
 
-            currentFile: null,
-            receivedChunks: [],
+
+
+
+
+            // // ✅ REMOVE THESE OLD VARIABLES (not needed with streaming approach):
+            // currentFile: null,
+            // receivedChunks: [],
+
 
             // ✅ FIX: Handle multiple file reception
             handleIncomingData(data) {
@@ -1160,22 +1546,28 @@
                 const fileData = this.receivingFiles.get(fileId);
                 if (!fileData) return;
 
+                // ✅ MEMORY FIX: Create blob and immediately trigger download
                 const blob = new Blob(fileData.chunks, { type: fileData.metadata.mimeType });
                 const url = URL.createObjectURL(blob);
 
-                // ✅ NEW: Auto-download immediately instead of storing
+                // Auto-download immediately
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileData.metadata.name;
+                a.rel = 'noopener';
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
 
-                // Free memory immediately
-                setTimeout(() => URL.revokeObjectURL(url), 100);
+                // ✅ CRITICAL: Free memory IMMEDIATELY (not after timeout)
+                URL.revokeObjectURL(url);
 
-                // Display preview only (don't store full blob)
+                // ✅ CRITICAL: Clear chunks array immediately to free memory
+                fileData.chunks.length = 0; // Fastest way to clear array
+                fileData.chunks = null;
+
+                // Display download confirmation
                 const container = document.getElementById('receivedImages');
                 const section = document.getElementById('receivedImagesSection');
                 section.classList.remove('hidden');
@@ -1184,15 +1576,19 @@
                 mediaDiv.className = 'image-item';
 
                 const isVideo = fileData.metadata.mimeType.startsWith('video/');
+                const fileSize = (fileData.metadata.size / (1024 * 1024)).toFixed(2); // MB
 
-                // Show preview with download confirmation
+                // Show confirmation with file size
                 mediaDiv.innerHTML = `
-        <div style="text-align: center; padding: 20px; background: rgba(var(--color-success-rgb), 0.1); border-radius: 8px;">
+        <div style="text-align: center; padding: 20px; background: rgba(var(--color-success-rgb), 0.1); border-radius: 8px; border: 1px solid rgba(var(--color-success-rgb), 0.3);">
             <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
-            <strong>${fileData.metadata.name}</strong>
-            <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;">
-                ${isVideo ? '📹 Video' : '🖼️ Image'} downloaded automatically
-            </p>
+            <strong style="display: block; margin-bottom: 8px;">${fileData.metadata.name}</strong>
+            <div style="font-size: 13px; color: var(--color-text-secondary);">
+                ${isVideo ? '📹 Video' : '🖼️ Image'} • ${fileSize} MB
+            </div>
+            <div style="margin-top: 8px; padding: 8px 12px; background: rgba(var(--color-success-rgb), 0.15); border-radius: 4px; font-size: 12px; font-weight: 500; color: var(--color-success);">
+                ⬇️ Downloaded automatically
+            </div>
         </div>
     `;
                 container.appendChild(mediaDiv);
@@ -1201,20 +1597,35 @@
                 const receivedCount = document.getElementById('receivedCount');
                 receivedCount.textContent = parseInt(receivedCount.textContent) + 1;
 
-                // Cleanup
+                // ✅ CRITICAL: Delete from Map immediately
                 this.receivingFiles.delete(fileId);
+
+                // ✅ MEMORY FIX: Explicitly null out fileData reference
+                fileData.metadata = null;
+
+                if (window.gc) { // Available in some debug builds
+                    window.gc();
+                }
             },
 
 
 
+
             updateTransferSpeed() {
-                if (!this.transferStartTime) return;
+                if (!this.transferStartTime) {
+                    this.transferStartTime = Date.now();
+                }
 
                 const elapsedSeconds = (Date.now() - this.transferStartTime) / 1000;
-                const megabytes = this.totalBytesSent / (1024 * 1024);
+                if (elapsedSeconds < 0.1) return; // Skip first 100ms
+
+                const megabytes = (this.totalBytesSent || 0) / (1024 * 1024);
                 const speed = (megabytes / elapsedSeconds).toFixed(2);
 
-                document.getElementById('transferSpeed').textContent = speed + ' MB/s';
+                const speedEl = document.getElementById('transferSpeed');
+                if (speedEl) {
+                    speedEl.textContent = speed + ' MB/s';
+                }
             },
 
             async downloadAll() {
