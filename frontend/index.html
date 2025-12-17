@@ -521,8 +521,9 @@
                     </p>
                 </div>
 
-                <input type="file" id="fileInput" class="file-input" multiple
-                    accept="image/*,image/heic,image/heif,video/*">
+              
+                    <input type="file" id="fileInput" class="file-input" multiple
+    accept="image/*,image/heic,image/heif,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp">
 
                 <div id="sendingImages" class="images-grid hidden"></div>
 
@@ -537,7 +538,7 @@
         </div>
 
         <!-- Add to Home Screen Banner -->
-<div id="addToHomeScreen" style="
+        <div id="addToHomeScreen" style="
     position: fixed;
     bottom: 0;
     left: 0;
@@ -550,17 +551,18 @@
     display: none;
     animation: slideUp 0.3s ease-out;
 ">
-    <div style="max-width: 600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-        <div style="flex: 1;">
-            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">
-                📱 Add LocalSnap to Home Screen
-            </div>
-            <div style="font-size: 13px; opacity: 0.9;">
-                Access instantly like a native app!
-            </div>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <button id="installBtn" style="
+            <div
+                style="max-width: 600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">
+                        📱 Add LocalSnap to Home Screen
+                    </div>
+                    <div style="font-size: 13px; opacity: 0.9;">
+                        Access instantly like a native app!
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="installBtn" style="
                 background: white;
                 color: #21808d;
                 border: none;
@@ -571,9 +573,9 @@
                 cursor: pointer;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             ">
-                Add Now
-            </button>
-            <button id="closeBanner" style="
+                        Add Now
+                    </button>
+                    <button id="closeBanner" style="
                 background: transparent;
                 color: white;
                 border: 1px solid rgba(255,255,255,0.3);
@@ -582,18 +584,25 @@
                 font-size: 14px;
                 cursor: pointer;
             ">
-                Later
-            </button>
+                        Later
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
-<style>
-@keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-</style>
+        <style>
+            @keyframes slideUp {
+                from {
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        </style>
 
     </div>
 
@@ -1160,15 +1169,18 @@
                     const isVideo = file.type.startsWith('video/') ||
                         file.name.match(/\.(mp4|mov|avi|webm|mkv|flv|wmv|m4v)$/i);
 
-                    if (isImage || isVideo) {
-                        mediaFiles.push(file);
+                    const isDocument = file.type.match(/pdf|msword|wordprocessingml|excel|spreadsheetml|powerpoint|presentationml/i) ||
+                        file.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|rtf|odt|ods|odp)$/i);
+
+                    if (isImage || isVideo || isDocument) {
+                        mediaFiles.push(file); // Now accepts documents too!
                     } else {
-                        console.log('Skipping non-media file:', file.name, file.type);
+                        console.log('Skipping unsupported file:', file.name, file.type);
                     }
                 }
 
                 if (mediaFiles.length === 0) {
-                    alert('No valid media files found. Please select images or videos.');
+                    alert('No valid files found. Please select images, videos, or documents.');
                     return;
                 }
 
@@ -1637,6 +1649,7 @@
 
                 const isVideo = fileData.metadata.mimeType.startsWith('video/');
                 const fileSize = (fileData.metadata.size / (1024 * 1024)).toFixed(2); // MB
+            
 
                 // Show confirmation with file size
                 mediaDiv.innerHTML = `
