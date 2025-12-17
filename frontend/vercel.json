@@ -14,7 +14,7 @@
   ],
   "headers": [
     {
-      "source": "/manifest.json",
+      "source": "manifest.json",
       "headers": [
         {
           "key": "Content-Type",
