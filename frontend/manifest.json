@@ -1,0 +1,9 @@
+{
+  "name": "LocalSnap",
+  "short_name": "LocalSnap",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#21808d"
+
+}
