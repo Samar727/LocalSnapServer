@@ -5,11 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LocalSnap Transfer - Direct WiFi Image Transfer</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#21808d">
-    <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LocalSnap">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <style>
         :root {
             --color-cream-50: rgba(252, 252, 249, 1);
@@ -542,110 +543,63 @@
         </div>
 
         <!-- Add to Home Screen Banner -->
-        <div id="shortcutBanner" style="
+<div id="addToHomeScreen" style="
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background: linear-gradient(135deg, #21808d 0%, #1a6b76 100%);
     color: white;
-    padding: 14px 20px;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+    padding: 16px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
     z-index: 9999;
     display: none;
+    animation: slideUp 0.3s ease-out;
 ">
-            <div
-                style="max-width: 600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                    <div style="font-size: 32px;">📱</div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Add to Home Screen</div>
-                        <div style="font-size: 13px; opacity: 0.9;">Quick access from your home screen</div>
-                    </div>
-                </div>
-                <button id="addShortcut" style="
-            background: white;
-            color: #21808d;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        ">
-                    Add Now
-                </button>
-                <button id="closeBanner" style="
-            background: transparent;
-            color: white;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px;
-        ">
-                    ✕
-                </button>
-                <script>// Add to Home Screen Shortcut
-                    let deferredPrompt = null;
-
-                    // Capture the add to home screen event
-                    window.addEventListener('beforeinstallprompt', (e) => {
-                        e.preventDefault();
-                        deferredPrompt = e;
-                        console.log('beforeinstallprompt event captured');
-
-                        // Show banner after 3 seconds
-                        setTimeout(() => {
-                            const banner = document.getElementById('shortcutBanner');
-                            const dismissed = localStorage.getItem('shortcut-dismissed');
-                            if (banner && !dismissed) {
-                                banner.style.display = 'block';
-                            }
-                        }, 3000);
-                    });
-
-                    // "Add Now" button click
-                    document.getElementById('addShortcut')?.addEventListener('click', async () => {
-                        if (deferredPrompt) {
-                            // Trigger browser's "Add to Home Screen" dialog
-                            deferredPrompt.prompt();
-                            const { outcome } = await deferredPrompt.userChoice;
-                            deferredPrompt = null;
-                        } else {
-                            // Manual instructions for iOS/other browsers
-                            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                            if (isIOS) {
-                                alert('Tap Share button (□↑) → "Add to Home Screen"');
-                            } else {
-                                alert('Tap Menu (⋮) → "Add to Home screen"');
-                            }
-                        }
-                        document.getElementById('shortcutBanner').style.display = 'none';
-                    });
-
-                    // Close button
-                    document.getElementById('closeBanner')?.addEventListener('click', () => {
-                        document.getElementById('shortcutBanner').style.display = 'none';
-                        localStorage.setItem('shortcut-dismissed', 'true');
-                    });</script>
+    <div style="max-width: 600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+        <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">
+                📱 Add LocalSnap to Home Screen
+            </div>
+            <div style="font-size: 13px; opacity: 0.9;">
+                Access instantly like a native app!
             </div>
         </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="installBtn" style="
+                background: white;
+                color: #21808d;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            ">
+                Add Now
+            </button>
+            <button id="closeBanner" style="
+                background: transparent;
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                padding: 10px 16px;
+                border-radius: 8px;
+                font-size: 14px;
+                cursor: pointer;
+            ">
+                Later
+            </button>
+        </div>
     </div>
+</div>
 
-    <style>
-        @keyframes slideUp {
-            from {
-                transform: translateY(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-    </style>
+<style>
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+</style>
 
     </div>
 
