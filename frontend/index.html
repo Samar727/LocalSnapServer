@@ -521,9 +521,9 @@
                     </p>
                 </div>
 
-              
-                    <input type="file" id="fileInput" class="file-input" multiple
-    accept="image/*,image/heic,image/heif,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp">
+
+                <input type="file" id="fileInput" class="file-input" multiple
+                    accept="image/*,image/heic,image/heif,video/*">
 
                 <div id="sendingImages" class="images-grid hidden"></div>
 
@@ -1649,7 +1649,7 @@
 
                 const isVideo = fileData.metadata.mimeType.startsWith('video/');
                 const fileSize = (fileData.metadata.size / (1024 * 1024)).toFixed(2); // MB
-            
+
 
                 // Show confirmation with file size
                 mediaDiv.innerHTML = `
