@@ -536,73 +536,181 @@
                 <button class="btn btn-secondary" onclick="app.disconnect()">Disconnect</button>
             </div>
         </div>
-
-        <!-- Add to Home Screen Banner -->
-        <div id="addToHomeScreen" style="
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #21808d 0%, #1a6b76 100%);
-    color: white;
-    padding: 16px;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-    z-index: 9999;
-    display: none;
-    animation: slideUp 0.3s ease-out;
+<!-- Android App Download Footer -->
+<footer id="androidAppFooter" style="
+  margin-top: 60px;
+  background: radial-gradient(circle at top left, #0b101d 0, #020617 55%, #020617 100%);
+  color: #e5e7eb;
+  padding: 22px 18px 26px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
 ">
-            <div
-                style="max-width: 600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">
-                        📱 Add LocalSnap to Home Screen
-                    </div>
-                    <div style="font-size: 13px; opacity: 0.9;">
-                        Access instantly like a native app!
-                    </div>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button id="installBtn" style="
-                background: white;
-                color: #21808d;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 14px;
-                cursor: pointer;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            ">
-                        Add Now
-                    </button>
-                    <button id="closeBanner" style="
-                background: transparent;
-                color: white;
-                border: 1px solid rgba(255,255,255,0.3);
-                padding: 10px 16px;
-                border-radius: 8px;
-                font-size: 14px;
-                cursor: pointer;
-            ">
-                        Later
-                    </button>
-                </div>
-            </div>
+  <div style="
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  ">
+    <!-- Left content -->
+    <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:240px;">
+      <div style="
+        width:44px;
+        height:44px;
+        border-radius:16px;
+        background: conic-gradient(from 180deg at 50% 50%, #22c55e, #0ea5e9, #22c55e);
+        padding:2px;
+        animation: spinGlow 6s linear infinite;
+      ">
+        <div style="
+          width:100%;
+          height:100%;
+          border-radius:14px;
+          background:#020617;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:22px;
+        ">
+          ⚡
         </div>
+      </div>
+      <div>
+        <div style="font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#38bdf8;">
+          Android app available
+        </div>
+        <div style="font-size:18px; font-weight:700; color:#e5e7eb; margin-top:2px;">
+          Install QuickShare App for ultra-fast sharing
+        </div>
+        <div style="font-size:13px; color:#9ca3af; margin-top:4px;">
+          Native speed · Background transfers · One‑tap access
+        </div>
+      </div>
+    </div>
 
-        <style>
-            @keyframes slideUp {
-                from {
-                    transform: translateY(100%);
-                    opacity: 0;
-                }
+    <!-- Right: animated button -->
+    <div style="display:flex; align-items:center; justify-content:flex-end; flex:0 0 auto;">
+      <a href="https://release-assets.githubusercontent.com/github-production-release-asset/1119997390/2a5f3b78-9435-4b1e-891d-283e63b0b964?sp=r&sv=2018-11-09&sr=b&spr=https&se=2025-12-20T10%3A08%3A08Z&rscd=attachment%3B+filename%3Duniversal.apk&rsct=application%2Fvnd.android.package-archive&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2025-12-20T09%3A08%3A03Z&ske=2025-12-20T10%3A08%3A08Z&sks=b&skv=2018-11-09&sig=5zI15JsTi7CwKpCyoATSQ%2BfSd4iBH3MTH2KozoKvv78%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2NjIyNDA3NywibmJmIjoxNzY2MjIyMjc3LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dIaqKqW5nhhVQu09YJu7z-Xei343QCpez1I5V6CFtLA&response-content-disposition=attachment%3B%20filename%3Duniversal.apk&response-content-type=application%2Fvnd.android.package-archive" target="_blank" rel="noopener"
+         class="android-download-btn" style="
+           position:relative;
+           display:inline-flex;
+           align-items:center;
+           gap:10px;
+           padding:11px 22px 11px 18px;
+           border-radius:999px;
+           background:linear-gradient(135deg,#22c55e,#16a34a);
+           color:#022c22;
+           text-decoration:none;
+           font-size:14px;
+           font-weight:700;
+           overflow:hidden;
+           box-shadow:0 10px 30px rgba(22,163,74,0.45);
+           transform:translateY(0);
+           transition:transform 150ms ease, box-shadow 150ms ease;
+         "
+         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 16px 40px rgba(22,163,74,0.6)';"
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 10px 30px rgba(22,163,74,0.45)';">
+        <!-- Shimmer overlay -->
+        <span style="
+          position:absolute;
+          inset:-40%;
+          background:linear-gradient(120deg,transparent 0,#bbf7d0 40%,transparent 80%);
+          opacity:0.0;
+          transform:translateX(-80%);
+          animation: shimmerSlide 2.4s infinite;
+          pointer-events:none;
+        "></span>
 
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
+        <!-- Play-like icon -->
+        <span style="
+          width:28px;
+          height:28px;
+          border-radius:999px;
+          background:rgba(6,78,59,0.15);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:17px;
+        ">
+          ▶
+        </span>
+
+        <span style="display:flex; flex-direction:column; text-align:left; line-height:1.05;">
+          <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9;">
+            Download on
+          </span>
+          <span style="font-size:15px;">Android</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style>
+@keyframes spinGlow {
+  0%   { transform: rotate(0deg);   opacity: 0.85; }
+  50%  { transform: rotate(180deg); opacity: 1;    }
+  100% { transform: rotate(360deg); opacity: 0.85; }
+}
+@keyframes shimmerSlide {
+  0%   { transform: translateX(-90%); opacity: 0; }
+  30%  { opacity: 0.55; }
+  60%  { transform: translateX(60%); opacity: 0; }
+  100% { transform: translateX(90%); opacity: 0; }
+}
+
+/* Small-screen tweaks */
+@media (max-width: 640px) {
+  #androidAppFooter {
+    padding-inline: 14px;
+  }
+}
+</style>
+
+
+
+    </div>
+
+    <script>
+        // Hide banner when user closes it
+        (function () {
+            const key = 'localsnap-android-banner-dismissed';
+            const banner = document.getElementById('androidDownloadBanner');
+            const closeBtn = document.getElementById('closeAndroidBanner');
+
+            if (!banner) return;
+
+            // Don't show again if dismissed
+            if (localStorage.getItem(key) === '1') {
+                banner.style.display = 'none';
+                return;
             }
-        </style>
+
+            closeBtn?.addEventListener('click', () => {
+                banner.style.display = 'none';
+                localStorage.setItem(key, '1');
+            });
+        })();
+    </script>
+
+
+
+    </div>
+
+    <style>
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
 
     </div>
 
