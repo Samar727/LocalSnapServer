@@ -740,8 +740,8 @@
                 this.displayLocalIP();
 
                 // Connect to signaling server (auto-detect)
-                // const serverUrl = 'https://localsnapserver.onrender.com/'
-                const serverUrl = 'https://quickshare-backend-lilac.vercel.app/';
+                const serverUrl = 'https://localsnapserver.onrender.com/'
+                // const serverUrl = 'https://quickshare-backend-lilac.vercel.app/';
                 this.socket = io(serverUrl);
 
                 this.socket.on('room-created', (data) => {
