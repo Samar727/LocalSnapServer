@@ -749,6 +749,7 @@
 
                 const dropZone = document.getElementById('dropZone');
                 const fileInput = document.getElementById('fileInput');
+                const fileInputDocs = document.getElementById('fileInputDocs');
 
                 // ✅ FIX: Better click handling for all devices
                 dropZone.addEventListener('click', (e) => {
@@ -784,8 +785,7 @@
                     }
                 });
 
-                // ✅ FIX: iOS-compatible file input handler
-                fileInput.addEventListener('change', (e) => {
+                const handleFileInputChange = (e) => {
                     const files = e.target.files;
                     const summary = document.getElementById('selectedFilesSummary');
 
@@ -817,7 +817,11 @@
                     setTimeout(() => {
                         e.target.value = '';
                     }, 500);
-                });
+                };
+
+                // ✅ FIX: iOS-compatible file input handler
+                fileInput.addEventListener('change', handleFileInputChange);
+                fileInputDocs?.addEventListener('change', handleFileInputChange);
 
 
             },
