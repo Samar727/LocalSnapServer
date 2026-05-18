@@ -413,11 +413,15 @@
                 <!-- After drop zone, add this: -->
                 <div style="text-align: center; margin-top: 12px;">
                     <button onclick="app.selectMoreFiles()" class="btn btn--secondary"
-                        style="width: auto; padding: 8px 16px; font-size: 14px;">
-                        📁 Select Files or Folders
+                        style="width: auto; padding: 8px 16px; font-size: 14px; margin-bottom: 8px;">
+                        📁 Select Images or Videos
+                    </button>
+                    <button onclick="document.getElementById('fileInputDocs').click()" class="btn btn--secondary"
+                        style="width: auto; padding: 8px 16px; font-size: 14px; margin-bottom: 8px;">
+                        📄 Select Documents or ZIP
                     </button>
                     <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;">
-                        Tip: Select files in batches if you have 100+ images
+                        Tip: Select files in batches if you have 100+ images or documents
                     </p>
                     <div id="selectedFilesSummary"
                         style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; display: none;">
@@ -427,6 +431,8 @@
 
                 <input type="file" id="fileInput" class="file-input" multiple
                     accept="image/*,image/heic,image/heif,video/*">
+                <input type="file" id="fileInputDocs" class="file-input" multiple
+                    accept=".zip,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv">
                        <!-- <input type="file" id="fileInput" class="file-input" multiple
                     accept="image/*,image/heic,image/heif,video/*
                     .zip,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv
