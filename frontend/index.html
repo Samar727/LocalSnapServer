@@ -309,10 +309,10 @@
             <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">
                 Works on Windows, Mac, Linux, iPhone, Android, iPad
             </p>
-           
+
         </div>
 
-        
+
 
         <!-- Home Screen -->
         <div id="homeScreen">
@@ -419,11 +419,15 @@
                     <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;">
                         Tip: Select files in batches if you have 100+ images
                     </p>
+                    <div id="selectedFilesSummary"
+                        style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; display: none;">
+                    </div>
                 </div>
 
 
                 <input type="file" id="fileInput" class="file-input" multiple webkitdirectory directory
                     accept="image/*,image/heic,image/heif,video/*,.zip,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv">
+                     <!-- <input type="file" id="fileInput" class="file-input" multiple webkitdirectory directory> -->
 
                 <div id="sendingImages" class="images-grid hidden"></div>
 
@@ -533,26 +537,52 @@
         </div>
 
 
-<style>
-@keyframes spinGlow {
-  0%   { transform: rotate(0deg);   opacity: 0.85; }
-  50%  { transform: rotate(180deg); opacity: 1;    }
-  100% { transform: rotate(360deg); opacity: 0.85; }
-}
-@keyframes shimmerSlide {
-  0%   { transform: translateX(-90%); opacity: 0; }
-  30%  { opacity: 0.55; }
-  60%  { transform: translateX(60%); opacity: 0; }
-  100% { transform: translateX(90%); opacity: 0; }
-}
+        <style>
+            @keyframes spinGlow {
+                0% {
+                    transform: rotate(0deg);
+                    opacity: 0.85;
+                }
 
-/* Small-screen tweaks */
-@media (max-width: 640px) {
-  #androidAppFooter {
-    padding-inline: 14px;
-  }
-}
-</style>
+                50% {
+                    transform: rotate(180deg);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                    opacity: 0.85;
+                }
+            }
+
+            @keyframes shimmerSlide {
+                0% {
+                    transform: translateX(-90%);
+                    opacity: 0;
+                }
+
+                30% {
+                    opacity: 0.55;
+                }
+
+                60% {
+                    transform: translateX(60%);
+                    opacity: 0;
+                }
+
+                100% {
+                    transform: translateX(90%);
+                    opacity: 0;
+                }
+            }
+
+            /* Small-screen tweaks */
+            @media (max-width: 640px) {
+                #androidAppFooter {
+                    padding-inline: 14px;
+                }
+            }
+        </style>
 
 
 
@@ -747,13 +777,27 @@
                 // ✅ FIX: iOS-compatible file input handler
                 fileInput.addEventListener('change', (e) => {
                     const files = e.target.files;
+                    const summary = document.getElementById('selectedFilesSummary');
 
                     if (!files || files.length === 0) {
                         console.log('No files selected');
+                        if (summary) {
+                            summary.style.display = 'none';
+                            summary.textContent = '';
+                        }
                         return;
                     }
 
                     console.log(`Selected ${files.length} files on ${navigator.platform}`);
+
+                    if (summary) {
+                        summary.style.display = 'block';
+                        const firstPaths = Array.from(files)
+                            .slice(0, 5)
+                            .map((file) => file.webkitRelativePath || file.name)
+                            .join(', ');
+                        summary.textContent = `Selected ${files.length} file(s): ${firstPaths}${files.length > 5 ? ', ...' : ''}`;
+                    }
 
                     // Process files immediately (critical for iOS)
                     this.handleFiles(files);
@@ -1354,12 +1398,13 @@
                 const container = document.getElementById('sendingImages');
                 if (container) container.classList.remove('hidden');
 
+                const displayPath = file.relativePath || file.webkitRelativePath || file.name;
                 const imgDiv = document.createElement('div');
                 imgDiv.className = 'image-item';
                 imgDiv.id = 'send-' + fileId;
                 imgDiv.innerHTML = `
     <div style="text-align:center;padding:12px;">
-      <strong>${file.name}</strong>
+      <strong>${displayPath}</strong>
       <div style="font-size:12px;color:#64748b">${fileSizeMB} MB</div>
     </div>
     <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
